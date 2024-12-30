@@ -1,0 +1,318 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>عرض الجواب - لعبة فكر فكر</title>
+    <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;700&display=swap" rel="stylesheet">
+    
+    <!-- إضافات PWA -->
+    <link rel="manifest" href="/manifest.json">
+    <meta name="theme-color" content="#4A6FA5">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black">
+    <meta name="apple-mobile-web-app-title" content="لعبة فكر فكر">
+    <link rel="apple-touch-icon" href="/icons/icon-152x152.png">
+    <link rel="apple-touch-icon" sizes="72x72" href="/icons/icon-72x72.png">
+    <link rel="apple-touch-icon" sizes="96x96" href="/icons/icon-96x96.png">
+    <link rel="apple-touch-icon" sizes="128x128" href="/icons/icon-128x128.png">
+    <link rel="apple-touch-icon" sizes="144x144" href="/icons/icon-144x144.png">
+    <link rel="apple-touch-icon" sizes="152x152" href="/icons/icon-152x152.png">
+    <link rel="apple-touch-icon" sizes="192x192" href="/icons/icon-192x192.png">
+    <link rel="apple-touch-icon" sizes="384x384" href="/icons/icon-384x384.png">
+    <link rel="apple-touch-icon" sizes="512x512" href="/icons/icon-512x512.png">
+    <meta name="mobile-web-app-capable" content="yes">
+    
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Cairo', sans-serif;
+        }
+
+        :root {
+            --primary-color: #4A6FA5;
+            --primary-light: #6B8EBF;
+            --secondary-color: #8AA6C1;
+            --secondary-light: #ABC4D6;
+            --background-color: #F4F7FA;
+            --card-bg: #FFFFFF;
+            --text-color: #2C3E50;
+            --border-color: #E1E8F0;
+            --glass-bg: rgba(255, 255, 255, 0.92);
+            --shadow-primary: rgba(74, 111, 165, 0.15);
+            --shadow-secondary: rgba(138, 166, 193, 0.15);
+            --gradient-1: #ececec;
+            --gradient-2: #c5cbd3;
+            --gradient-3: #ececec;
+            --texture-color: rgba(255, 255, 255, 0.05);
+            --texture-dark: rgba(0, 0, 0, 0.05);
+        }
+
+        body {
+            font-family: 'Cairo', sans-serif;
+            background: linear-gradient(135deg, 
+                var(--gradient-1),
+                var(--gradient-2),
+                var(--gradient-3)
+            );
+            background-attachment: fixed;
+            position: relative;
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+
+        body::before,
+        body::after {
+            content: '';
+            position: fixed;
+            inset: 0;
+            pointer-events: none;
+            z-index: 0;
+        }
+
+        body::before {
+            background-image: 
+                linear-gradient(45deg, var(--texture-color) 25%, transparent 25%),
+                linear-gradient(-45deg, var(--texture-color) 25%, transparent 25%),
+                linear-gradient(45deg, transparent 75%, var(--texture-dark) 75%),
+                linear-gradient(-45deg, transparent 75%, var(--texture-dark) 75%);
+            background-size: 40px 40px;
+            background-position: 0 0, 0 20px, 20px -20px, -20px 0px;
+            opacity: 0.6;
+        }
+
+        body::after {
+            background: 
+                repeating-linear-gradient(
+                    -45deg,
+                    transparent,
+                    transparent 5px,
+                    var(--texture-color) 5px,
+                    var(--texture-color) 6px
+                ),
+                repeating-linear-gradient(
+                    45deg,
+                    transparent,
+                    transparent 5px,
+                    var(--texture-dark) 5px,
+                    var(--texture-dark) 6px
+                );
+            background-size: 20px 20px;
+            opacity: 0.8;
+        }
+
+        .container {
+            position: relative;
+            z-index: 2;
+            width: 90%;
+            max-width: 600px;
+            background: #FFFFFF !important;
+            padding: 20px;
+            border-radius: 12px;
+            box-shadow: 0 4px 15px var(--shadow-primary);
+            text-align: center;
+            border: 1px solid rgba(74, 111, 165, 0.3);
+        }
+
+        .question,
+        .answer,
+        .team,
+        .back-button {
+            position: relative;
+            z-index: 3;
+        }
+
+        .question {
+            font-size: 1.8em;
+            color: var(--text-color);
+            margin-bottom: 15px;
+            padding: 12px;
+            font-weight: bold;
+        }
+
+        .answer {
+            font-size: 1.8em;
+            color: #27ae60;
+            margin: 15px 0;
+            padding: 12px;
+            font-weight: bold;
+        }
+
+        .team {
+            font-size: 1em;
+            color: var(--text-color);
+            margin: 15px 0;
+            padding: 12px;
+            direction: rtl;
+            text-align: center;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .team span {
+            font-weight: bold;
+            color: white;
+            background: var(--primary-color);
+            padding: 3px 8px;
+            border-radius: 4px;
+            display: inline-block;
+            margin-right: 0;
+            margin-left: 8px;
+            font-size: 0.75em;
+        }
+
+        .back-button {
+            background: var(--primary-color);
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 8px;
+            font-size: 1em;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            font-weight: bold;
+            margin-top: 15px;
+        }
+
+        .back-button:hover {
+            background: var(--primary-light);
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px var(--shadow-primary);
+        }
+
+        @media (max-width: 768px) {
+            .container {
+                width: 95%;
+                padding: 15px;
+                margin: 10px;
+            }
+
+            .question {
+                font-size: 1.5em;
+                padding: 10px;
+            }
+
+            .answer {
+                font-size: 1.5em;
+                padding: 10px;
+            }
+
+            .team {
+                font-size: 0.9em;
+                padding: 10px;
+            }
+
+            .team span {
+                font-size: 0.7em;
+                padding: 2px 6px;
+            }
+        }
+
+        @media (max-height: 500px) {
+            .container {
+                margin: 5px;
+                padding: 12px;
+            }
+
+            .question, .answer, .team {
+                margin: 8px 0;
+                padding: 8px;
+            }
+
+            .back-button {
+                margin-top: 10px;
+                padding: 8px 16px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div id="question-text" class="question">...</div>
+        <div id="answer-text" class="answer">...</div>
+        <div id="team-info" class="team">...</div>
+        <button class="back-button" onclick="goBackToQuestions()">العودة للأسئلة</button>
+    </div>
+    <script>
+        let db;
+        let currentRoundId;
+        const dbName = 'TriviaGame';
+        const dbVersion = 10;
+
+        const request = indexedDB.open(dbName, dbVersion);
+
+        request.onsuccess = (event) => {
+            db = event.target.result;
+            const params = new URLSearchParams(window.location.search);
+            const questionId = parseInt(params.get('questionId'));
+            loadAnswer(questionId);
+        };
+
+        request.onerror = (event) => {
+            console.error('خطأ في فتح قاعدة البيانات:', event);
+        };
+
+        function loadAnswer(questionId) {
+            const transaction = db.transaction(['questions'], 'readonly');
+            const questionsStore = transaction.objectStore('questions');
+            const request = questionsStore.get(questionId);
+
+            request.onsuccess = (event) => {
+                const question = event.target.result;
+                if (question) {
+                    const questionText = question.question || 'النص غير متوفر';
+                    const answerText = question.answer || 'الإجابة غير متوفرة';
+                    const awardedTeam = question.awardedTeam || 'غير معروف';
+
+                    document.getElementById('question-text').textContent = `السؤال: ${questionText}`;
+                    document.getElementById('answer-text').textContent = `الإجابة: ${answerText}`;
+                    document.getElementById('team-info').innerHTML = `الفريق الذي أجاب: <span>${awardedTeam}</span>`;
+                } else {
+                    document.getElementById('question-text').textContent = 'لم يتم العثور على السؤال.';
+                    document.getElementById('answer-text').textContent = '';
+                    document.getElementById('team-info').textContent = '';
+                }
+            };
+
+            request.onerror = (event) => {
+                console.error('خطأ أثناء جلب السؤال:', event);
+            };
+        }
+
+        function goBackToQuestions() {
+            window.location.href = 'questions.html';
+        }
+    </script>
+
+    <!-- تسجيل Service Worker -->
+    <script>
+        if ('serviceWorker' in navigator) {
+            window.addEventListener('load', () => {
+                navigator.serviceWorker.register('/service-worker.js')
+                    .then(registration => {
+                        console.log('تم تسجيل Service Worker بنجاح:', registration.scope);
+                    })
+                    .catch(error => {
+                        console.log('فشل تسجيل Service Worker:', error);
+                    });
+            });
+        }
+
+        // إضافة رسالة تثبيت التطبيق
+        let deferredPrompt;
+        window.addEventListener('beforeinstallprompt', (e) => {
+            e.preventDefault();
+            deferredPrompt = e;
+        });
+
+        window.addEventListener('appinstalled', () => {
+            console.log('تم تثبيت التطبيق بنجاح');
+        });
+    </script>
+</body>
+</html>

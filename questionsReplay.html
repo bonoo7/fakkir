@@ -1,0 +1,373 @@
+<!DOCTYPE html>
+<html lang="ar">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>إعادة اللعب - لعبة فكر</title>
+	    <link rel="stylesheet" href="css/styles.css">
+		
+</head>
+<body>
+    <header>
+        <div class="round-info" id="round-info">الجولة: ---</div>
+        <div class="teams-container" id="teams-container"></div>
+        <div class="controls">
+            <select id="team-select" onchange="setActiveTeam()"></select>
+            <button onclick="endGame()">إنهاء اللعبة</button>
+        </div>
+    </header>
+
+    <main>
+        <div class="categories-container" id="categories-container"></div>
+    </main>
+
+<script>
+  // الإعدادات الأساسية وتهيئة قاعدة البيانات
+const dbName = 'TriviaGame';
+const dbVersion = 8;
+let db;
+let currentRoundId;
+let teams = [];
+let currentTeamIndex = 0;
+
+// فتح اتصال مع قاعدة البيانات
+const request = indexedDB.open(dbName, dbVersion);
+
+request.onsuccess = (event) => {
+    db = event.target.result;
+    const urlParams = new URLSearchParams(window.location.search);
+    currentRoundId = parseInt(urlParams.get('roundId'));
+    
+    if (currentRoundId) {
+        console.log('تم استلام معرف الجولة:', currentRoundId);
+        loadRoundData();
+    } else {
+        console.error('لم يتم تحديد معرف الجولة');
+        showError('لم يتم تحديد معرف الجولة');
+    }
+};
+
+request.onerror = (event) => {
+    console.error('خطأ في فتح قاعدة البيانات:', event);
+    showError('حدث خطأ في الاتصال بقاعدة البيانات');
+};
+
+// تحميل بيانات الجولة
+async function loadRoundData() {
+    try {
+        showLoading();
+        const transaction = db.transaction(['rounds'], 'readonly');
+        const roundsStore = transaction.objectStore('rounds');
+        
+        const round = await new Promise((resolve, reject) => {
+            const request = roundsStore.get(currentRoundId);
+            request.onsuccess = () => resolve(request.result);
+            request.onerror = () => reject(request.error);
+        });
+
+        if (round) {
+            console.log('تم تحميل بيانات الجولة:', round);
+            teams = round.teams || [];
+            document.getElementById('round-info').textContent = `الجولة: ${round.name}`;
+            
+            // تحميل الفريق النشط أولاً
+            await loadActiveTeam();
+            // ثم تحميل باقي البيانات
+            await loadCategoriesForRound();
+        } else {
+            console.error('لم يتم العثور على الجولة:', currentRoundId);
+            showError('لم يتم العثور على الجولة');
+        }
+    } catch (error) {
+        console.error('خطأ في تحميل بيانات الجولة:', error);
+        showError('حدث خطأ في تحميل بيانات الجولة');
+    }
+}
+
+// تحميل الفئات والأسئلة
+async function loadCategoriesForRound() {
+    try {
+        const transaction = db.transaction(['selectedCategories', 'questions'], 'readonly');
+        const categoriesStore = transaction.objectStore('selectedCategories');
+        const questionsStore = transaction.objectStore('questions');
+
+        const [categories, questions] = await Promise.all([
+            getAllRecords(categoriesStore),
+            getAllRecords(questionsStore)
+        ]);
+
+        const roundCategories = categories.filter(c => c.roundId === currentRoundId);
+        const roundQuestions = questions.filter(q => q.roundId === currentRoundId);
+
+        console.log('الفئات المحملة:', roundCategories.length);
+        console.log('الأسئلة المحملة:', roundQuestions.length);
+
+        renderCategories(roundCategories, roundQuestions);
+    } catch (error) {
+        console.error('خطأ في تحميل الفئات والأسئلة:', error);
+        showError('حدث خطأ في تحميل البيانات');
+    }
+}
+// إدارة الفريق النشط
+async function loadActiveTeam() {
+    try {
+        const transaction = db.transaction(['selectedTeam'], 'readonly');
+        const selectedTeamStore = transaction.objectStore('selectedTeam');
+        
+        const activeTeams = await new Promise((resolve, reject) => {
+            const request = selectedTeamStore.getAll();
+            request.onsuccess = () => resolve(request.result);
+            request.onerror = () => reject(request.error);
+        });
+
+        if (activeTeams && activeTeams.length > 0) {
+            const activeTeam = activeTeams[0];
+            if (activeTeam.roundId === currentRoundId) {
+                currentTeamIndex = activeTeam.index;
+                console.log('تم تحميل الفريق النشط المحفوظ:', activeTeam);
+            } else {
+                currentTeamIndex = 0;
+                console.log('الجولة مختلفة، تم تعيين الفريق الأول');
+            }
+        } else {
+            currentTeamIndex = 0;
+            console.log('لم يتم العثور على فريق نشط محفوظ، تم تعيين الفريق الأول');
+            // حفظ الفريق الأول كفريق نشط
+            await saveActiveTeam();
+        }
+
+        renderTeams();
+    } catch (error) {
+        console.error('خطأ في تحميل الفريق النشط:', error);
+        currentTeamIndex = 0;
+        renderTeams();
+    }
+}
+
+async function saveActiveTeam() {
+    try {
+        const transaction = db.transaction(['selectedTeam'], 'readwrite');
+        const selectedTeamStore = transaction.objectStore('selectedTeam');
+
+        // مسح أي بيانات سابقة
+        await new Promise((resolve, reject) => {
+            const clearRequest = selectedTeamStore.clear();
+            clearRequest.onsuccess = () => resolve();
+            clearRequest.onerror = () => reject(clearRequest.error);
+        });
+
+        // حفظ الفريق النشط الجديد
+        const activeTeam = {
+            index: currentTeamIndex,
+            roundId: currentRoundId,
+            teamName: teams[currentTeamIndex].name
+        };
+
+        await new Promise((resolve, reject) => {
+            const addRequest = selectedTeamStore.add(activeTeam);
+            addRequest.onsuccess = () => resolve();
+            addRequest.onerror = () => reject(addRequest.error);
+        });
+
+        console.log('تم حفظ الفريق النشط:', activeTeam);
+    } catch (error) {
+        console.error('خطأ في حفظ الفريق النشط:', error);
+    }
+}
+
+async function switchToNextTeam() {
+    currentTeamIndex = (currentTeamIndex + 1) % teams.length;
+    renderTeams();
+    
+    // تحديث القائمة المنسدلة
+    const teamSelect = document.getElementById('team-select');
+    teamSelect.value = currentTeamIndex;
+    
+    // حفظ التغيير في قاعدة البيانات
+    await saveActiveTeam();
+    console.log('تم تبديل وحفظ الفريق النشط:', teams[currentTeamIndex].name);
+}
+
+async function setActiveTeam() {
+    const newIndex = parseInt(document.getElementById('team-select').value);
+    if (!isNaN(newIndex) && newIndex >= 0 && newIndex < teams.length) {
+        currentTeamIndex = newIndex;
+        renderTeams();
+        await saveActiveTeam();
+        console.log('تم تغيير وحفظ الفريق النشط يدوياً:', teams[currentTeamIndex].name);
+    }
+}
+// معالجة الأسئلة والفئات
+function sortQuestionsByDifficulty(questions) {
+    const difficultyOrder = {
+        'سهل': 1,
+        'متوسط': 2,
+        'صعب': 3
+    };
+    
+    return questions.sort((a, b) => 
+        difficultyOrder[a.difficulty] - difficultyOrder[b.difficulty]
+    );
+}
+
+function renderCategories(categories, questions) {
+    const container = document.getElementById('categories-container');
+    container.innerHTML = '';
+
+    categories.forEach(category => {
+        const categoryDiv = document.createElement('div');
+        categoryDiv.className = 'category';
+        categoryDiv.innerHTML = `<h2>${category.name}</h2>`;
+
+        const questionsDiv = document.createElement('div');
+        questionsDiv.className = 'questions-container';
+
+        const categoryQuestions = questions.filter(q => q.category === category.name);
+        const sortedQuestions = sortQuestionsByDifficulty(categoryQuestions);
+
+        sortedQuestions.forEach(question => {
+            const questionDiv = document.createElement('div');
+            let className = `question ${getDifficultyClass(question.difficulty)}`;
+            
+            if (question.isDisabled === 1) {
+                className += ' disabled-once';
+            } else if (question.isDisabled >= 2) {
+                className += ' disabled-twice';
+            }
+            
+            questionDiv.className = className;
+            questionDiv.textContent = question.difficulty;
+            questionDiv.onclick = () => handleQuestionClick(question);
+            questionsDiv.appendChild(questionDiv);
+        });
+
+        categoryDiv.appendChild(questionsDiv);
+        container.appendChild(categoryDiv);
+    });
+}
+
+function handleQuestionClick(question) {
+    console.log('تم النقر على السؤال:', question);
+    
+    if (question.isDisabled >= 2) {
+        console.log('السؤال معطل مرتين - الانتقال لعرض الإجابة');
+        window.location.href = `show-answer-again.html?questionId=${question.id}`;
+    } else {
+        console.log('تحديث حالة السؤال وتبديل الفريق');
+        switchToNextTeam();
+        updateQuestionAndRedirect(question);
+    }
+}
+
+async function updateQuestionAndRedirect(question) {
+    const transaction = db.transaction(['questions'], 'readwrite');
+    const questionsStore = transaction.objectStore('questions');
+    
+    try {
+        question.isDisabled = (question.isDisabled || 0) + 1;
+        console.log(`تحديث حالة السؤال ${question.id} إلى:`, question.isDisabled);
+        
+        const questionElements = document.querySelectorAll('.question');
+        questionElements.forEach(element => {
+            if (element.onclick && element.onclick.toString().includes(question.id)) {
+                if (question.isDisabled === 1) {
+                    element.className = `question ${getDifficultyClass(question.difficulty)} disabled-once`;
+                } else if (question.isDisabled >= 2) {
+                    element.className = `question ${getDifficultyClass(question.difficulty)} disabled-twice`;
+                }
+            }
+        });
+
+        await new Promise((resolve, reject) => {
+            const request = questionsStore.put(question);
+            request.onsuccess = () => resolve();
+            request.onerror = () => reject(request.error);
+        });
+
+        setTimeout(() => {
+            window.location.href = `question-page-again.html?questionId=${question.id}`;
+        }, 200);
+
+    } catch (error) {
+        console.error('خطأ في تحديث السؤال:', error);
+        showError('حدث خطأ في تحديث السؤال');
+    }
+}
+// وظائف مساعدة وعرض
+function renderTeams() {
+    const teamsContainer = document.getElementById('teams-container');
+    const teamSelect = document.getElementById('team-select');
+    teamsContainer.innerHTML = '';
+    teamSelect.innerHTML = '';
+
+    teams.forEach((team, index) => {
+        const teamBox = document.createElement('div');
+        teamBox.className = `team-box ${index === currentTeamIndex ? 'active' : ''}`;
+        teamBox.textContent = `${team.name} - ${team.points} نقاط`;
+        teamsContainer.appendChild(teamBox);
+
+        const option = document.createElement('option');
+        option.value = index;
+        option.textContent = team.name;
+        teamSelect.appendChild(option);
+    });
+
+    teamSelect.value = currentTeamIndex;
+}
+
+function getDifficultyClass(difficulty) {
+    switch (difficulty) {
+        case 'سهل': return 'easy';
+        case 'متوسط': return 'medium';
+        case 'صعب': return 'hard';
+        default: return '';
+    }
+}
+
+function getAllRecords(store) {
+    return new Promise((resolve, reject) => {
+        try {
+            const request = store.getAll();
+            request.onsuccess = () => resolve(request.result);
+            request.onerror = (event) => reject(new Error(`فشل في جلب البيانات: ${event.target.error}`));
+        } catch (error) {
+            reject(error);
+        }
+    });
+}
+
+function showError(message) {
+    const container = document.getElementById('categories-container');
+    container.innerHTML = `
+        <div style="
+            color: #FFB5B5;
+            text-align: center;
+            padding: 20px;
+            background: #FFF0F0;
+            border-radius: 8px;
+            margin: 20px;
+        ">
+            ${message}
+        </div>
+    `;
+}
+
+function showLoading() {
+    const container = document.getElementById('categories-container');
+    container.innerHTML = `
+        <div style="
+            text-align: center;
+            padding: 20px;
+            color: #9AA6B2;
+        ">
+            جاري التحميل...
+        </div>
+    `;
+}
+
+function endGame() {
+    window.location.href = 'winner.html';
+}
+</script>
+</body>
+</html>

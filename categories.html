@@ -1,0 +1,708 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="ScreenOrientation" content="autoRotate:disabled">
+    <meta name="screen-orientation" content="landscape">
+    <title>الفئات - لعبة فكر فكر</title>
+    <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700;800&display=swap" rel="stylesheet">
+
+    <link rel="stylesheet" href="css/styles.css">
+    <style>
+        .header {
+            position: fixed;
+            top: 0;
+            right: 0;
+            left: 0;
+            background: #dee7f0;
+            padding: 12px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-bottom: 1px solid var(--border-color);
+            box-shadow: 0 2px 10px var(--shadow-primary);
+            z-index: 1000;
+        }
+
+        .header h1 {
+            margin: 0;
+            font-size: 1.6em;
+            color: var(--text-color);
+            flex-grow: 1;
+            text-align: center;
+        }
+
+        .main-content {
+            margin-top: 70px;
+            flex: 1;
+            overflow-y: auto;
+            padding: 20px;
+        }
+
+        .categories-container {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+            gap: 15px;
+            padding: 10px;
+            justify-content: center;
+            margin: 0 auto;
+            max-width: 1400px;
+            width: 100%;
+        }
+
+        .category {
+            background: var(--glass-bg);
+            border-radius: 10px;
+            padding: 12px;
+            text-align: center;
+            box-shadow: 0 2px 8px var(--shadow-primary);
+            cursor: pointer;
+            transition: all 0.3s ease;
+            border: 1px solid var(--border-color);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .category:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 4px 12px var(--shadow-primary);
+        }
+
+        .category.selected {
+            background: var(--primary-light);
+            border-color: var(--primary-color);
+        }
+
+        .category h2 {
+            font-size: 1em;
+            margin: 0;
+            color: var(--text-color);
+            font-weight: 500;
+        }
+
+        .category.selected h2 {
+            color: var(--card-bg);
+        }
+
+        .category-image {
+            width: 140px;
+            height: 140px;
+            border-radius: 8px;
+            object-fit: cover;
+            padding: 5px;
+            background: var(--card-bg);
+        }
+
+        .start-button {
+            background: linear-gradient(135deg, var(--primary-color), var(--primary-light));
+            color: var(--card-bg);
+            padding: 8px 20px;
+            border: none;
+            border-radius: 6px;
+            font-size: 1em;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            font-family: 'Cairo', sans-serif;
+            font-weight: bold;
+            box-shadow: 0 4px 15px var(--shadow-primary);
+        }
+
+        .start-button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px var(--shadow-primary);
+        }
+
+        @media (max-width: 768px) {
+            .category {
+                padding: 10px;
+            }
+
+            .category-image {
+                width: 60px;
+                height: 60px;
+            }
+
+            .category h2 {
+                font-size: 0.9em;
+            }
+        }
+
+        .error-message {
+            display: none;
+            position: fixed;
+            top: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            background-color: #ff4444;
+            color: white;
+            padding: 10px 20px;
+            border-radius: 5px;
+            z-index: 1000;
+            text-align: center;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+        }
+
+        /* تنسيق حاوية الفئات */
+        .categories-wrapper {
+            background: rgba(236, 242, 255, 0.95);
+            border: 1px solid #ccc;
+            border-radius: 10px;
+            padding: 20px;
+            margin: 20px;
+        }
+    </style>
+    <!-- إضافات PWA -->
+    <link rel="manifest" href="/manifest.json">
+    <meta name="theme-color" content="#4A6FA5">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black">
+    <meta name="apple-mobile-web-app-title" content="لعبة فكر فكر">
+    <link rel="apple-touch-icon" href="/icons/icon-152x152.png">
+    <link rel="apple-touch-icon" sizes="72x72" href="/icons/icon-72x72.png">
+    <link rel="apple-touch-icon" sizes="96x96" href="/icons/icon-96x96.png">
+    <link rel="apple-touch-icon" sizes="128x128" href="/icons/icon-128x128.png">
+    <link rel="apple-touch-icon" sizes="144x144" href="/icons/icon-144x144.png">
+    <link rel="apple-touch-icon" sizes="152x152" href="/icons/icon-152x152.png">
+    <link rel="apple-touch-icon" sizes="192x192" href="/icons/icon-192x192.png">
+    <link rel="apple-touch-icon" sizes="384x384" href="/icons/icon-384x384.png">
+    <link rel="apple-touch-icon" sizes="512x512" href="/icons/icon-512x512.png">
+    <meta name="mobile-web-app-capable" content="yes">
+</head>
+<body class="categories-page">
+    <div class="header">
+        <div class="header-container">
+            <h1>اختر <span id="required-categories">...</span> فئات للبدء</h1>
+            <button class="start-button" onclick="startGame()">بدء اللعب</button>
+    </div>
+    </div>
+
+    <div class="main-content">
+        <div class="categories-wrapper">
+            <div class="categories-container" id="categories-grid"></div>
+        </div>
+    </div>
+
+    <div class="footer">
+        <p>©لعبة فكّر </p>
+    </div>
+
+    <script>
+// ======= تهيئة قاعدة البيانات =======
+const dbName = 'TriviaGame';
+const dbVersion = 10;
+let db;
+let currentRoundId = null;
+let questions = [];
+let selectedCategories = [];
+let maxCategories = 6;
+let currentRoundTeams = [];
+
+// فتح قاعدة البيانات
+const request = indexedDB.open(dbName, dbVersion);
+
+request.onupgradeneeded = (event) => {
+    db = event.target.result;
+    createStores(db);
+};
+
+request.onsuccess = (event) => {
+    db = event.target.result;
+    console.log('تم فتح قاعدة البيانات بنجاح');
+    initializePage();
+};
+
+request.onerror = (event) => {
+    console.error('خطأ في فتح قاعدة البيانات:', event.target.error);
+    showError('حدث خطأ في فتح قاعدة البيانات');
+};
+
+// ======= دوال التهيئة =======
+function createStores(db) {
+    if (!db.objectStoreNames.contains('questions')) {
+        const questionsStore = db.createObjectStore('questions', { keyPath: 'id', autoIncrement: true });
+        questionsStore.createIndex('roundId', 'roundId', { unique: false });
+        questionsStore.createIndex('awardedTeam', 'awardedTeam', { unique: false });
+    }
+
+    if (!db.objectStoreNames.contains('rounds')) {
+        db.createObjectStore('rounds', { keyPath: 'id' });
+    }
+
+    if (!db.objectStoreNames.contains('currentRound')) {
+        db.createObjectStore('currentRound', { keyPath: 'id' });
+    }
+
+    if (!db.objectStoreNames.contains('selectedCategories')) {
+        db.createObjectStore('selectedCategories', { keyPath: 'id', autoIncrement: true });
+    }
+}
+
+// دالة للتحقق من وجود جولة حالية
+const checkCurrentRound = async () => {
+    return new Promise((resolve, reject) => {
+        const transaction = db.transaction(['currentRound'], 'readonly');
+        const store = transaction.objectStore('currentRound');
+        const request = store.get(1);
+
+        request.onsuccess = (event) => {
+            const result = event.target.result;
+            console.log('نتيجة التحقق من الجولة الحالية:', result);
+            if (result && result.roundId) {
+                currentRoundId = result.roundId;
+                resolve(result);
+            } else {
+                reject('لم يتم العثور على جولة حالية');
+            }
+        };
+
+        request.onerror = () => reject('خطأ في قراءة الجولة الحالية');
+    });
+};
+
+// تحديث دالة initializePage
+async function initializePage() {
+    try {
+        if (!db) {
+            throw new Error('قاعدة البيانات غير متصلة');
+        }
+
+        // التحقق من الجولة الحالية
+        const currentRound = await checkCurrentRound();
+        console.log('الجولة الحالية:', currentRound);
+
+        // جلب تفاصيل الجولة
+        const transaction = db.transaction(['rounds'], 'readonly');
+        const roundsStore = transaction.objectStore('rounds');
+        const roundDetails = await new Promise((resolve, reject) => {
+            const request = roundsStore.get(currentRoundId);
+            request.onsuccess = () => resolve(request.result);
+            request.onerror = () => reject('خطأ في جلب تفاصيل الجولة');
+        });
+
+        console.log('تفاصيل الجولة:', roundDetails);
+        
+        if (!roundDetails) {
+            throw new Error('لم يتم العثور على تفاصيل الجولة');
+        }
+
+        // تحديث عدد الفئات المطلوبة
+        maxCategories = getAllowedCategoriesCount(roundDetails.teams.length);
+        currentRoundTeams = roundDetails.teams;
+
+        // تحديث العدد في العنوان
+        const requiredCategoriesElement = document.getElementById('required-categories');
+        if (requiredCategoriesElement) {
+            requiredCategoriesElement.textContent = maxCategories;
+        }
+
+        console.log('معرف الجولة الحالية:', currentRoundId);
+        console.log('عدد الفئات المسموح:', maxCategories);
+        console.log('الفرق:', currentRoundTeams);
+
+        await loadCategories();
+
+    } catch (error) {
+        console.error('خطأ في تهيئة الصفحة:', error);
+        showError('حدث خطأ في تحميل بيانات الجولة');
+    }
+}
+
+// ======= دوال المساعدة =======
+function getAllowedCategoriesCount(teamsCount) {
+    switch(teamsCount) {
+        case 2: return 6;
+        case 3: return 6;
+        case 4: return 8;
+        case 5: return 10;
+        default: return 6;
+    }
+}
+
+function updateCategoriesCounter() {
+    const selectedCount = selectedCategories.length;
+    const requiredCategoriesElement = document.getElementById('required-categories');
+    if (requiredCategoriesElement) {
+        requiredCategoriesElement.textContent = maxCategories;
+    }
+}
+
+// ======= تنسيقات CSS =======
+const style = document.createElement('style');
+style.textContent = `
+    .error-message {
+        display: none;
+        position: fixed;
+        top: 20px;
+        left: 50%;
+        transform: translateX(-50%);
+        background-color: #ff4444;
+        color: white;
+        padding: 10px 20px;
+        border-radius: 5px;
+        z-index: 1000;
+        text-align: center;
+        box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+    }
+`;
+document.head.appendChild(style);
+
+// تعريف صور الفئات
+const categoryImages = {
+    'رياضة': 'catpic/sports.png',
+    'تاريخ': 'catpic/history.png',
+    'علوم': 'catpic/science.png',
+    'جغرافيا': 'catpic/geography.png',
+    'فنون': 'catpic/arts.png',
+    'إسلامي': 'catpic/islamic.png',
+    'تكنولوجيا': 'catpic/tech.png',
+    'كرة قدم': 'catpic/football.png',
+    'أمراء وحكام': 'catpic/rulers.png',
+    'سياسة': 'catpic/default.png',
+    'شعر وأدب': 'catpic/literature.png',
+    'أوائل': 'catpic/first.png',
+    'فلسفة': 'catpic/phyl.png',
+    'ألقاب': 'catpic/nicknames.png',
+    'default': 'catpic/default.png'
+};
+
+// دالة للحصول على عدد الفرق من الجولة الحالية
+function getCurrentTeamsCount() {
+    return new Promise((resolve, reject) => {
+        const transaction = db.transaction(['rounds'], 'readonly');
+        const roundsStore = transaction.objectStore('rounds');
+        const request = roundsStore.getAll();
+
+        request.onsuccess = (event) => {
+            const rounds = event.target.result;
+            if (rounds && rounds.length > 0) {
+                const currentRound = rounds[rounds.length - 1]; // آخر جولة
+                const teamsCount = currentRound.teams.length;
+                resolve(teamsCount);
+            } else {
+                reject('لم يتم اعثور على جولة نشطة');
+            }
+        };
+
+        request.onerror = (event) => {
+            reject('خطأ في قراءة الجولات');
+        };
+    });
+}
+
+// دالة للتحقق من إمكانية إضافة فئة جديدة
+async function canAddCategory() {
+    try {
+        const teamsCount = await getCurrentTeamsCount();
+        const currentCategoriesCount = document.querySelectorAll('.category-container').length;
+        const maxAllowed = getAllowedCategoriesCount(teamsCount);
+
+        if (currentCategoriesCount >= maxAllowed) {
+            showError(`لا يمكن إضافة فئات أكثر. الحد الأقصى المسموح ه هو ${maxAllowed} فئات`);
+            return false;
+        }
+        return true;
+    } catch (error) {
+        console.error('خطأ:', error);
+        showError('حدث خطأ في التحقق من عدد الفئات المسموح به');
+        return false;
+    }
+}
+
+// تعديل دالة إضافة الفئة
+async function addCategory() {
+    if (!(await canAddCategory())) {
+        return;
+    }
+    
+    // باقي كود إضافة الفئة...
+}
+
+// إضافة رسالة توضيحية لعدد الفئات المتبقية
+async function updateCategoriesCounter() {
+    try {
+        const teamsCount = await getCurrentTeamsCount();
+        const currentCategoriesCount = document.querySelectorAll('.category-container').length;
+        const maxAllowed = getAllowedCategoriesCount(teamsCount);
+        const remaining = maxAllowed - currentCategoriesCount;
+
+        const counterElement = document.getElementById('categories-counter');
+        if (counterElement) {
+            counterElement.textContent = `الفئات المتبقية: ${remaining}`;
+        }
+    } catch (error) {
+        console.error('خطأ في تحديث عداد الفئات:', error);
+    }
+}
+
+// تحديث العداد في تحميل الصفحة
+document.addEventListener('DOMContentLoaded', () => {
+    if (db) {
+        initializePage();
+    } else {
+        console.log('في انتظار اتصال قاعدة البيانات...');
+    }
+});
+
+// دالة تحديث الأسئلة برقم الجولة
+const updateQuestionsWithRoundId = async (questions) => {
+    if (!questions || questions.length === 0) {
+        console.warn('لا توجد أسئلة للتحديث');
+        return [];
+    }
+
+    console.log(`جاري تحديث ${questions.length} سؤال برم الجولة ${currentRoundId}`);
+
+    return Promise.all(questions.map(question => {
+        return new Promise((resolve, reject) => {
+            const transaction = db.transaction(['questions'], 'readwrite');
+            const store = transaction.objectStore('questions');
+            
+            // تحديث السؤال برقم الجولة
+            question.roundId = currentRoundId;
+            const request = store.put(question);
+
+            request.onsuccess = () => {
+                console.log(`تم تحديث السؤال ${question.id || 'بدون معرف'}`);
+                resolve(question);
+            };
+
+            request.onerror = (error) => {
+                console.error('خطأ في تحديث السؤال:', error);
+                reject('خطأ في تحديث السؤال');
+            };
+        });
+    }));
+};
+
+// تحميل الفئات
+const loadCategories = () => {
+    const transaction = db.transaction(['questions'], 'readonly');
+    const questionsStore = transaction.objectStore('questions');
+    const request = questionsStore.getAll();
+
+    request.onsuccess = (event) => {
+        const allQuestions = event.target.result;
+        const uniqueCategories = [...new Set(allQuestions.map(q => q.category))];
+        renderCategories(uniqueCategories);
+    };
+
+    request.onerror = (event) => {
+        console.error('خطأ في تحميل الفئات:', event.target.error);
+        showError('خطأ في تحميل الفئات');
+    };
+};
+
+// عرض الفئات في الواجهة
+const renderCategories = (categories) => {
+    const grid = document.getElementById('categories-grid');
+    grid.innerHTML = '';
+    
+    if (categories.length === 0) {
+        grid.innerHTML = '<p class="no-categories">لا توجد فئات متاحة</p>';
+        return;
+    }
+
+    categories.forEach(category => {
+        const div = document.createElement('div');
+        div.className = 'category';
+        
+        const imagePath = categoryImages[category] || categoryImages.default;
+        
+        div.innerHTML = `
+            <img src="${imagePath}" 
+                 alt="${category}" 
+                 class="category-image" 
+                 onerror="this.src='${categoryImages.default}'">
+            <h2>${category}</h2>
+        `;
+        
+        div.onclick = () => toggleCategorySelection(category, div);
+        grid.appendChild(div);
+    });
+};
+
+// تبديل حالة اختيار الفئة
+const toggleCategorySelection = (category, div) => {
+    if (selectedCategories.includes(category)) {
+        selectedCategories = selectedCategories.filter(cat => cat !== category);
+        div.classList.remove('selected');
+    } else if (selectedCategories.length < maxCategories) {
+        selectedCategories.push(category);
+        div.classList.add('selected');
+    } else {
+        showError(`يمكنك اختيار ${maxCategories} فئات فقط`);
+    }
+    updateCategoriesCounter(); // تحديث العداد بعد كل تغيير
+};
+
+// تعديل دالة startGame
+const startGame = async () => {
+    try {
+        await checkCurrentRound();
+
+        if (!currentRoundId) {
+            throw new Error('لم يتم العثور على معرف الجولة الحالية');
+        }
+
+        if (selectedCategories.length !== maxCategories) {
+            throw new Error(`الراء اختيار ${maxCategories} فئات للبدء`);
+        }
+
+        // جمع الأسئلة المختارة لكل فئة أولاً
+        const allSelectedQuestions = [];
+        for (const category of selectedCategories) {
+            const categoryQuestions = await getRandomQuestionsByDifficulty(category);
+            allSelectedQuestions.push(...categoryQuestions);
+        }
+
+        // إنشاء معاملة واحدة لحفظ جميع البيانات
+        return new Promise((resolve, reject) => {
+            const transaction = db.transaction(['questions', 'selectedCategories'], 'readwrite');
+            
+            transaction.onerror = () => {
+                reject('فشل في حفظ البيانات');
+            };
+
+            transaction.oncomplete = () => {
+                console.log(`تم حفظ ${allSelectedQuestions.length} سؤال بنجاح`);
+                window.location.href = 'questions.html';
+            };
+
+            // مسح الفئات السابقة
+            const categoriesStore = transaction.objectStore('selectedCategories');
+            const questionsStore = transaction.objectStore('questions');
+
+            // مسح الفئات القديمة
+            categoriesStore.clear();
+
+            // إضافة الفئات الجديدة
+            selectedCategories.forEach(category => {
+                categoriesStore.add({
+                    name: category,
+                    roundId: currentRoundId
+                });
+            });
+
+            // تحديث الأسئلة المختارة
+            allSelectedQuestions.forEach(question => {
+                question.roundId = currentRoundId;
+                questionsStore.put(question);
+            });
+        });
+
+    } catch (error) {
+        console.error('حدث خطأ أثناء بدء اللعبة:', error);
+        showError(error.message || 'حدث خطأ أثناء تجهيز اللعبة');
+    }
+};
+
+// تحديث دالة getRandomQuestionsByDifficulty
+const getRandomQuestionsByDifficulty = async (category) => {
+    return new Promise((resolve, reject) => {
+        const transaction = db.transaction(['questions'], 'readonly');
+        const questionsStore = transaction.objectStore('questions');
+        const request = questionsStore.getAll();
+
+        request.onsuccess = (event) => {
+            const allQuestions = event.target.result;
+            const categoryQuestions = allQuestions.filter(q => q.category === category);
+
+            const getQuestionsForDifficulty = (difficulty) => {
+                // أولاً نحاول الحصول على الأسئلة غير المعطلة
+                let availableQuestions = categoryQuestions.filter(q => 
+                    q.difficulty === difficulty && 
+                    !q.isDisabled
+                );
+
+                // ذا لم نجد أسئلة غير معطلة كافية، نستخدم الأسئلة المعطلة من نفس المستوى
+                if (availableQuestions.length < 2) {
+                    console.log(`لا توجد أسئلة غير معطلة كافية للفئة ${category} والمستوى ${difficulty}`);
+                    const disabledQuestions = categoryQuestions.filter(q => 
+                        q.difficulty === difficulty && 
+                        q.isDisabled
+                    );
+                    availableQuestions = [...availableQuestions, ...disabledQuestions];
+                }
+
+                // تكرار الأسئلة إذا لم يكن لدينا ما يكفي
+                while (availableQuestions.length < 2) {
+                    availableQuestions = [...availableQuestions, ...availableQuestions];
+                }
+
+                // اختيار سؤالين عشوائيين
+                const selectedQuestions = availableQuestions
+                    .sort(() => Math.random() - 0.5)
+                    .slice(0, 2)
+                    .map(q => ({
+                        ...q,
+                        isDisabled: false, // إعادة تعيين حالة التطيل فقط
+                        roundId: currentRoundId
+                    }));
+
+                console.log(`تم اختيار ${selectedQuestions.length} أسئلة للمستوى ${difficulty}`);
+                return selectedQuestions;
+            };
+
+            const selectedQuestions = [
+                ...getQuestionsForDifficulty('سهل'),
+                ...getQuestionsForDifficulty('متوسط'),
+                ...getQuestionsForDifficulty('صعب')
+            ];
+
+            console.log(`تم اختيار ${selectedQuestions.length} أسئلة للفئة ${category}`);
+            resolve(selectedQuestions);
+        };
+
+        request.onerror = reject;
+    });
+};
+
+// ======= دوال عرض العناصر =======
+function addDisplayElements() {
+    return;
+}
+
+function showError(message) {
+    const errorDiv = document.getElementById('error-message') || createErrorDiv();
+    errorDiv.textContent = message;
+    errorDiv.style.display = 'block';
+    setTimeout(() => errorDiv.style.display = 'none', 3000);
+}
+
+function createErrorDiv() {
+    const errorDiv = document.createElement('div');
+    errorDiv.id = 'error-message';
+    errorDiv.className = 'error-message';
+    document.body.appendChild(errorDiv);
+    return errorDiv;
+}
+
+        // تسجيل Service Worker
+        if ('serviceWorker' in navigator) {
+            window.addEventListener('load', () => {
+                navigator.serviceWorker.register('/service-worker.js')
+                    .then(registration => {
+                        console.log('تم تسجيل Service Worker بنجاح:', registration.scope);
+                    })
+                    .catch(error => {
+                        console.log('فشل تسجيل Service Worker:', error);
+                    });
+            });
+        }
+
+        // إضافة رسالة تثبيت التطبيق
+        let deferredPrompt;
+        window.addEventListener('beforeinstallprompt', (e) => {
+            e.preventDefault();
+            deferredPrompt = e;
+        });
+
+        window.addEventListener('appinstalled', () => {
+            console.log('تم تثبيت التطبيق بنجاح');
+        });
+    </script>        
+</body>
+</html>

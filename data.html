@@ -1,0 +1,699 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>تاريخ الجولات - لعبة فكر</title>
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            font-family: 'Tajawal', sans-serif;
+            background: #D9EAFD;
+            color: #9AA6B2;
+            min-height: 100vh;
+            background-image: linear-gradient(45deg, #D9EAFD 25%, #e4f0fd 25%, #e4f0fd 50%, #D9EAFD 50%, #D9EAFD 75%, #e4f0fd 75%, #e4f0fd 100%);
+            background-size: 56.57px 56.57px;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 20px auto;
+            padding: 0 20px;
+        }
+
+        .header {
+            background: #F8FAFC;
+            padding: 15px;
+            border-radius: 12px;
+            box-shadow: 0 4px 20px rgba(188, 204, 220, 0.3);
+            margin-bottom: 20px;
+            text-align: center;
+            border: 1px solid #BCCCDC;
+        }
+
+        .header h1 {
+            margin: 0;
+            color: #9AA6B2;
+            font-size: 1.8em;
+        }
+
+        .new-game-button {
+            background: linear-gradient(135deg, #D9EAFD, #BCCCDC);
+            color: #F8FAFC;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 6px;
+            font-size: 1em;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            margin-top: 10px;
+        }
+
+        .new-game-button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(188, 204, 220, 0.4);
+        }
+
+        .rounds-container {
+            display: grid;
+            gap: 20px;
+        }
+
+        .round-card {
+            background: #F8FAFC;
+            border-radius: 12px;
+            padding: 20px;
+            box-shadow: 0 4px 20px rgba(188, 204, 220, 0.3);
+            border: 1px solid #BCCCDC;
+        }
+
+        .round-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 15px;
+            padding-bottom: 10px;
+            border-bottom: 1px solid #D9EAFD;
+        }
+
+        .round-title {
+            font-size: 1.2em;
+            color: #9AA6B2;
+            font-weight: bold;
+        }
+
+        .round-date {
+            color: #BCCCDC;
+            font-size: 0.9em;
+        }
+
+        .teams-list {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+            margin-bottom: 15px;
+        }
+
+        .team-item {
+            background: #D9EAFD;
+            padding: 10px;
+            border-radius: 6px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .team-name {
+            font-weight: bold;
+        }
+
+        .team-points {
+            color: #8FD14F;
+            font-weight: bold;
+        }
+
+        .categories-list {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+            margin-bottom: 15px;
+        }
+
+        .category-tag {
+            background: #D9EAFD;
+            padding: 5px 10px;
+            border-radius: 15px;
+            font-size: 0.9em;
+        }
+
+        .round-actions {
+            display: flex;
+            gap: 10px;
+            justify-content: flex-end;
+        }
+
+        .action-button {
+            padding: 8px 16px;
+            border-radius: 6px;
+            border: none;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            font-size: 0.9em;
+        }
+
+        .play-again {
+            background: linear-gradient(135deg, #D9EAFD, #BCCCDC);
+            color: #F8FAFC;
+        }
+
+        .delete-round {
+            background: linear-gradient(135deg, #FFE9E9, #FFB5B5);
+            color: #9AA6B2;
+        }
+
+        .action-button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(188, 204, 220, 0.4);
+        }
+
+        @media (max-width: 768px) {
+            .container {
+                padding: 10px;
+            }
+
+            .round-card {
+                padding: 15px;
+            }
+
+            .teams-list {
+                grid-template-columns: 1fr;
+            }
+
+            .round-actions {
+                flex-direction: column;
+            }
+
+            .action-button {
+                width: 100%;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>تاريخ الجولات</h1>
+            <button class="new-game-button" onclick="startNewGame()">جولة جديدة</button>
+        </div>
+        <div class="rounds-container" id="rounds-list">
+            <!-- سيتم إضافة الجولات هنا ديناميكياً -->
+        </div>
+    </div>
+
+<script>
+    // تعريفات أساسية
+    const dbName = 'TriviaGame';
+    const dbVersion = 8;
+    let db;
+
+    // فتح اتصال قاعدة البيانات
+    const request = indexedDB.open(dbName, dbVersion);
+
+    request.onerror = (event) => {
+        console.error('خطأ في فتح قاعدة البيانات:', event);
+        handleDatabaseError(event);
+    };
+
+    request.onsuccess = (event) => {
+        db = event.target.result;
+        loadRounds();
+    };
+
+    // الوظائف الرئيسية
+
+    // 1. تحميل الجولات
+    async function loadRounds() {
+        try {
+            showLoading();
+            const transaction = db.transaction(['rounds', 'selectedCategories'], 'readonly');
+            const roundsStore = transaction.objectStore('rounds');
+            const rounds = await getAllRecords(roundsStore);
+            
+            if (rounds.length === 0) {
+                showSuccess('لا توجد جولات حتى الآن. يمكنك بدء جولة جديدة من الزر أعلاه.');
+                return;
+            }
+
+            const roundsList = document.getElementById('rounds-list');
+            roundsList.innerHTML = '';
+
+            // عرض الجولات بترتيب تنازلي
+            for (const round of rounds.reverse()) {
+                const categories = await getCategoriesForRound(round.id);
+                const roundElement = createRoundElement(round, categories);
+                roundsList.appendChild(roundElement);
+            }
+        } catch (error) {
+            console.error('خطأ في تحميل الجولات:', error);
+            showError('حدث خطأ في تحميل الجولات. يرجى المحاولة مرة أخرى.');
+        }
+    }
+
+    // 2. إنشاء عنصر الجولة
+    function createRoundElement(round, categories) {
+        const roundDiv = document.createElement('div');
+        roundDiv.className = 'round-card';
+        
+        const date = new Date(round.id);
+        const dateStr = formatDate(date);
+
+        roundDiv.innerHTML = `
+            <div class="round-header">
+                <div class="round-title">${round.name}</div>
+                <div class="round-date">${dateStr}</div>
+            </div>
+            
+            <div class="teams-list">
+                ${round.teams.map(team => `
+                    <div class="team-item">
+                        <span class="team-name">${team.name}</span>
+                        <span class="team-points">${team.points} نقطة</span>
+                    </div>
+                `).join('')}
+            </div>
+
+            <div class="categories-list">
+                ${categories.map(cat => `
+                    <span class="category-tag">${cat.name}</span>
+                `).join('')}
+            </div>
+
+            <div class="round-actions">
+                <button class="action-button play-again" onclick="playAgain(${round.id})">لعب مجدداً</button>
+                <button class="action-button delete-round" onclick="deleteRound(${round.id})">حذف الجولة</button>
+            </div>
+        `;
+
+        return roundDiv;
+    }
+
+    // 3. إعادة لعب جولة
+async function playAgain(roundId) {
+    try {
+        // التحقق من وجود الجولة
+        const transaction = db.transaction(['rounds'], 'readonly');
+        const roundsStore = transaction.objectStore('rounds');
+        
+        const roundExists = await new Promise((resolve, reject) => {
+            const request = roundsStore.get(roundId);
+            request.onsuccess = () => resolve(request.result !== undefined);
+            request.onerror = () => reject(request.error);
+        });
+
+        if (!roundExists) {
+            throw new Error('لم يتم العثور على الجولة');
+        }
+
+        // الانتقال مباشرة إلى صفحة questionsReplay مع نفس معرف الجولة
+        console.log('إعادة تشغيل الجولة:', roundId);
+        window.location.href = `questionsReplay.html?roundId=${roundId}`;
+
+    } catch (error) {
+        console.error('خطأ في إعادة تشغيل الجولة:', error);
+        showError('حدث خطأ أثناء إعادة تشغيل الجولة');
+    }
+}
+
+    // 4. حذف جولة
+    async function deleteRound(roundId) {
+        if (!confirm('هل أنت متأكد من حذف هذه الجولة؟')) {
+            return;
+        }
+
+        try {
+            const transaction = db.transaction(
+                ['rounds', 'selectedCategories', 'questions'],
+                'readwrite'
+            );
+
+            // حذف الجولة وجميع البيانات المرتبطة بها
+            await Promise.all([
+                deleteRoundData(transaction, roundId),
+                deleteRoundCategories(transaction, roundId),
+                deleteRoundQuestions(transaction, roundId)
+            ]);
+
+            // إكمال المعاملة وإعادة تحميل البيانات
+            await new Promise((resolve, reject) => {
+                transaction.oncomplete = () => {
+                    loadRounds();
+                    resolve();
+                };
+                transaction.onerror = () => reject(transaction.error);
+            });
+
+        } catch (error) {
+            console.error('خطأ في حذف الجولة:', error);
+            showError('حدث خطأ أثناء حذف الجولة');
+        }
+    }
+
+    // وظائف مساعدة لإعادة اللعب
+    async function getRoundData(roundId) {
+        const transaction = db.transaction(['rounds'], 'readonly');
+        const roundsStore = transaction.objectStore('rounds');
+        return await new Promise((resolve, reject) => {
+            const request = roundsStore.get(roundId);
+            request.onsuccess = () => resolve(request.result);
+            request.onerror = () => reject(request.error);
+        });
+    }
+
+    async function getRoundDetails(roundId) {
+        const dataTransaction = db.transaction(['selectedCategories', 'questions'], 'readonly');
+        const [categories, questions] = await Promise.all([
+            getAllRecords(dataTransaction.objectStore('selectedCategories')),
+            getAllRecords(dataTransaction.objectStore('questions'))
+        ]);
+
+        return [
+            categories.filter(cat => cat.roundId === roundId),
+            questions.filter(q => q.roundId === roundId)
+        ];
+    }
+	    // تكملة الوظائف المساعدة لإعادة اللعب
+    function createNewRoundData(roundData, newRoundId) {
+        return {
+            ...roundData,
+            id: newRoundId,
+            teams: roundData.teams.map(team => ({
+                ...team,
+                points: 0
+            }))
+        };
+    }
+
+    async function saveNewRound(newRound, roundCategories, roundQuestions, newRoundId) {
+        const writeTransaction = db.transaction(
+            ['rounds', 'selectedCategories', 'questions'],
+            'readwrite'
+        );
+
+        // حفظ الجولة الجديدة
+        await new Promise((resolve, reject) => {
+            const request = writeTransaction.objectStore('rounds').add(newRound);
+            request.onsuccess = () => resolve();
+            request.onerror = () => reject(request.error);
+        });
+
+        // حفظ الفئات الجديدة
+        for (const category of roundCategories) {
+            await new Promise((resolve, reject) => {
+                const newCategory = {
+                    ...category,
+                    id: Date.now() + Math.random(),
+                    roundId: newRoundId
+                };
+                const request = writeTransaction.objectStore('selectedCategories').add(newCategory);
+                request.onsuccess = () => resolve();
+                request.onerror = () => reject(request.error);
+            });
+        }
+
+        // حفظ الأسئلة الجديدة
+        for (const question of roundQuestions) {
+            await new Promise((resolve, reject) => {
+                const newQuestion = {
+                    ...question,
+                    roundId: newRoundId,
+                    awardedTeam: null,
+                    isDisabled: 0
+                };
+                const request = writeTransaction.objectStore('questions').add(newQuestion);
+                request.onsuccess = () => resolve();
+                request.onerror = () => reject(request.error);
+            });
+        }
+
+        // انتظار إكمال المعاملة
+        return new Promise((resolve, reject) => {
+            writeTransaction.oncomplete = () => resolve();
+            writeTransaction.onerror = () => reject(writeTransaction.error);
+        });
+    }
+
+    // وظائف مساعدة للحذف
+    async function deleteRoundData(transaction, roundId) {
+        return new Promise((resolve, reject) => {
+            const request = transaction.objectStore('rounds').delete(roundId);
+            request.onsuccess = () => resolve();
+            request.onerror = () => reject(request.error);
+        });
+    }
+
+    async function deleteRoundCategories(transaction, roundId) {
+        const categoriesStore = transaction.objectStore('selectedCategories');
+        const categories = await getAllRecords(categoriesStore);
+        return Promise.all(
+            categories
+                .filter(category => category.roundId === roundId)
+                .map(category => new Promise((resolve, reject) => {
+                    const request = categoriesStore.delete(category.id);
+                    request.onsuccess = () => resolve();
+                    request.onerror = () => reject(request.error);
+                }))
+        );
+    }
+
+    async function deleteRoundQuestions(transaction, roundId) {
+        const questionsStore = transaction.objectStore('questions');
+        const questions = await getAllRecords(questionsStore);
+        return Promise.all(
+            questions
+                .filter(question => question.roundId === roundId)
+                .map(question => new Promise((resolve, reject) => {
+                    const request = questionsStore.delete(question.id);
+                    request.onsuccess = () => resolve();
+                    request.onerror = () => reject(request.error);
+                }))
+        );
+    }
+
+    // وظائف مساعدة عامة
+    function getAllRecords(store) {
+        return new Promise((resolve, reject) => {
+            try {
+                const request = store.getAll();
+                request.onsuccess = () => resolve(request.result);
+                request.onerror = () => reject(new Error('فشل في جلب البيانات'));
+            } catch (error) {
+                reject(error);
+            }
+        });
+    }
+
+    async function getCategoriesForRound(roundId) {
+        const transaction = db.transaction(['selectedCategories'], 'readonly');
+        const store = transaction.objectStore('selectedCategories');
+        const categories = await getAllRecords(store);
+        return categories.filter(cat => cat.roundId === roundId);
+    }
+
+    function showLoading() {
+        const roundsList = document.getElementById('rounds-list');
+        roundsList.innerHTML = `
+            <div style="
+                background: #F8FAFC;
+                padding: 20px;
+                border-radius: 8px;
+                text-align: center;
+                margin: 20px 0;
+                box-shadow: 0 2px 8px rgba(188, 204, 220, 0.2);
+            ">
+                <div style="color: #9AA6B2;">جاري التحميل...</div>
+            </div>
+        `;
+    }
+
+    function showSuccess(message) {
+        const roundsList = document.getElementById('rounds-list');
+        roundsList.innerHTML = `
+            <div style="
+                background: #E1FFED;
+                color: #8FD14F;
+                padding: 15px;
+                border-radius: 8px;
+                text-align: center;
+                margin: 20px 0;
+            ">
+                ${message}
+            </div>
+        `;
+    }
+
+    function showError(message) {
+        const roundsList = document.getElementById('rounds-list');
+        roundsList.innerHTML = `
+            <div style="
+                background: #FFE9E9;
+                color: #FF5757;
+                padding: 15px;
+                border-radius: 8px;
+                text-align: center;
+                margin: 20px 0;
+            ">
+                ${message}
+                <br>
+                <button onclick="loadRounds()" style="
+                    margin-top: 10px;
+                    padding: 5px 15px;
+                    border: none;
+                    border-radius: 4px;
+                    background: #FF5757;
+                    color: white;
+                    cursor: pointer;
+                ">
+                    إعادة المحاولة
+                </button>
+            </div>
+        `;
+    }
+
+    function formatDate(date) {
+        const options = {
+            year: 'numeric',
+            month: 'long',
+            day: 'numeric',
+            hour: '2-digit',
+            minute: '2-digit'
+        };
+        return new Date(date).toLocaleDateString('ar-SA', options);
+    }
+
+    function startNewGame() {
+        window.location.href = 'index.html';
+    }
+
+    // معالجة الأخطاء
+    function handleDatabaseError(event) {
+        console.error('خطأ في قاعدة البيانات:', event);
+        showError('حدث خطأ في الوصول إلى قاعدة البيانات');
+    }
+
+    // معالجة أخطاء غير متوقعة
+    window.onerror = function(message, source, lineno, colno, error) {
+        console.error('خطأ غير متوقع:', {
+            message,
+            source,
+            lineno,
+            colno,
+            error
+        });
+        showError('حدث خطأ غير متوقع. يرجى إعادة تحميل الصفحة.');
+    };
+
+  // تأكيد إغلاق الصفحة أثناء العمليات
+window.onbeforeunload = function(e) {
+    const anyTransactions = db && 
+                         Array.from(db.objectStoreNames).some(
+                             name => db.transaction(name, 'readonly').active
+                         );
+    if (anyTransactions) {
+        e.preventDefault();
+        return 'هناك عملية جارية. هل أنت متأكد من الخروج؟';
+    }
+
+    // التحقق من وجود عمليات حفظ معلقة
+    const hasPendingChanges = db && 
+                           Array.from(db.objectStoreNames).some(
+                               name => db.transaction(name, 'readwrite').active
+                           );
+    if (hasPendingChanges) {
+        e.preventDefault();
+        return 'هناك تغييرات لم يتم حفظها. هل أنت متأكد من الخروج؟';
+    }
+
+    // السماح بالإغلاق العادي إذا لم تكن هناك عمليات جارية
+    return undefined;
+};
+
+// تكملة السكربت السابق...
+
+    // تأكيد إغلاق الصفحة أثناء العمليات
+    window.onbeforeunload = function(e) {
+        const anyTransactions = db && 
+                             Array.from(db.objectStoreNames).some(
+                                 name => db.transaction(name, 'readonly').active
+                             );
+        if (anyTransactions) {
+            e.preventDefault();
+            return 'هناك عملية جارية. هل أنت متأكد من الخروج؟';
+        }
+    };
+
+    // تحويل الأرقام إلى صيغة عربية
+    function toArabicNumbers(num) {
+        const arabicNumbers = ['٠', '١', '٢', '٣', '٤', '٥', '٦', '٧', '٨', '٩'];
+        return num.toString().replace(/[0-9]/g, w => arabicNumbers[+w]);
+    }
+
+    // تنسيق النص العربي
+    function formatArabicText(text) {
+        return text.replace(/[٠-٩]/g, d => toArabicNumbers(d));
+    }
+
+    // مراقبة حالة الاتصال
+    window.addEventListener('online', function() {
+        showSuccess('تم استعادة الاتصال');
+        loadRounds(); // إعادة تحميل البيانات
+    });
+
+    window.addEventListener('offline', function() {
+        showError('تم فقد الاتصال. يرجى التحقق من اتصال الإنترنت الخاص بك.');
+    });
+
+  // التعامل مع أخطاء قاعدة البيانات غير المتوقعة
+if (db) {
+    db.onerror = function(event) {
+        console.error('خطأ في قاعدة البيانات:', event);
+        showError('حدث خطأ غير متوقع في قاعدة البيانات');
+    };
+}
+
+// أو بطريقة أخرى أكثر أماناً
+function setupDatabaseErrorHandler() {
+    if (db) {
+        db.onerror = function(event) {
+            console.error('خطأ في قاعدة البيانات:', event);
+            showError('حدث خطأ غير متوقع في قاعدة البيانات');
+        };
+    }
+}
+
+// استدعاء الدالة بعد فتح قاعدة البيانات
+request.onsuccess = (event) => {
+    db = event.target.result;
+    setupDatabaseErrorHandler();
+    loadRounds();
+};
+
+    // تنظيف الموارد عند إغلاق الصفحة
+    window.addEventListener('unload', function() {
+        if (db) {
+            // إغلاق جميع المعاملات المفتوحة
+            Array.from(db.objectStoreNames).forEach(storeName => {
+                const transaction = db.transaction(storeName, 'readonly');
+                if (transaction.active) {
+                    transaction.abort();
+                }
+            });
+            
+            // إغلاق قاعدة البيانات
+            db.close();
+        }
+    });
+
+    // منع التحميل المزدوج
+    let isLoading = false;
+    function safeLoadRounds() {
+        if (!isLoading) {
+            isLoading = true;
+            loadRounds().finally(() => {
+                isLoading = false;
+            });
+        }
+    }
+
+    // إضافة مستمع للتمرير للتحميل الكسول إذا لزم الأمر
+    let scrollTimeout;
+    window.addEventListener('scroll', function() {
+        clearTimeout(scrollTimeout);
+        scrollTimeout = setTimeout(() => {
+            // يمكن إضافة منطق التحميل الكسول هنا إذا كان هناك الكثير من الجولات
+        }, 150);
+    });
+</script>
+	
+	</body>
+</html>

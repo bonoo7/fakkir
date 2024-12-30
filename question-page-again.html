@@ -1,0 +1,505 @@
+<!DOCTYPE html>
+<html lang="ar">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>عرض السؤال - إعادة اللعب</title>
+    <style>
+        :root {
+            /* ... المتغيرات الموجودة ... */
+            --gradient-1: #ececec;    /* أزرق داكن أفتح */
+            --gradient-2: #c5cbd3;    /* أزرق متوسط أفتح */
+            --gradient-3: #ececec;    /* أزرق فاتح */
+            --texture-color: rgba(255, 255, 255, 0.05);
+            --texture-dark: rgba(0, 0, 0, 0.05);
+        }
+
+        body {
+            font-family: 'Cairo', sans-serif;
+            background: linear-gradient(135deg, 
+                var(--gradient-1),
+                var(--gradient-2),
+                var(--gradient-3)
+            );
+            background-attachment: fixed;
+            position: relative;
+            min-height: 100vh;
+            margin: 0;
+            padding: 0;
+        }
+
+        body::before,
+        body::after {
+            content: '';
+            position: fixed;
+            inset: 0;
+            pointer-events: none;
+            z-index: 0;
+        }
+
+        body::before {
+            background-image: 
+                linear-gradient(45deg, var(--texture-color) 25%, transparent 25%),
+                linear-gradient(-45deg, var(--texture-color) 25%, transparent 25%),
+                linear-gradient(45deg, transparent 75%, var(--texture-dark) 75%),
+                linear-gradient(-45deg, transparent 75%, var(--texture-dark) 75%);
+            background-size: 40px 40px;
+            background-position: 0 0, 0 20px, 20px -20px, -20px 0px;
+            opacity: 0.6;
+        }
+
+        body::after {
+            background: 
+                repeating-linear-gradient(
+                    -45deg,
+                    transparent,
+                    transparent 5px,
+                    var(--texture-color) 5px,
+                    var(--texture-color) 6px
+                ),
+                repeating-linear-gradient(
+                    45deg,
+                    transparent,
+                    transparent 5px,
+                    var(--texture-dark) 5px,
+                    var(--texture-dark) 6px
+                );
+            background-size: 20px 20px;
+            opacity: 0.8;
+        }
+
+        /* تحديث z-index للحاويات */
+        .container {
+            position: relative;
+            z-index: 2;
+            background: #FFFFFF !important;
+            border: 1px solid rgba(74, 111, 165, 0.3);
+        }
+
+        /* تحديث الأزرار */
+        .button,
+        .play-again-button {
+            position: relative;
+            z-index: 3;
+        }
+
+        /* تحديث العناصر الأخرى */
+        .team-list,
+        .team-item,
+        .answer,
+        #question-image,
+        #answer-image {
+            position: relative;
+            z-index: 2;
+        }
+
+        h1 {
+            font-size: 1.4em;
+            color: #9AA6B2;
+            margin-bottom: 15px;
+        }
+
+        .countdown {
+            font-size: 1.2em;
+            color: #FFB5B5;
+            margin-bottom: 15px;
+        }
+
+.answer {
+    font-size: 1.4em;
+    color: #C9E9D2;
+    display: none;
+    margin: 15px 0;
+    padding: 12px;
+}
+
+/* تنسيق نص "الإجابة:" */
+.answer strong {
+    color: #C9E9D2;
+    margin-left: 5px;
+}
+
+/* تنسيق نص الإجابة نفسها */
+.answer #answer-text {
+    color: #C9E9D2;
+    font-weight: bold;
+}
+
+@media (max-width: 600px) {
+    .answer {
+        font-size: 1.2em;
+        padding: 8px;
+        margin: 10px 0;
+    }
+}
+
+        .button-container {
+            display: flex;
+            justify-content: center;
+            flex-wrap: wrap;
+            gap: 8px;
+            margin-top: 15px;
+        }
+
+        .button {
+            background: linear-gradient(135deg, #E1FFED, #B5FFD6);
+            color: #9AA6B2;
+            border: none;
+            padding: 8px 16px;
+            font-size: 0.9em;
+            border-radius: 6px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(188, 204, 220, 0.4);
+        }
+
+        .button.answer-button {
+            background: linear-gradient(135deg, #FFF6E1, #FFE9B5);
+        }
+
+        #question-image, #answer-image {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            margin: 12px 0;
+        }
+        
+        #question-image img, #answer-image img {
+            max-width: 180px;
+            max-height: 130px;
+            object-fit: contain;
+            border-radius: 6px;
+            box-shadow: 0 2px 8px rgba(188, 204, 220, 0.2);
+        }
+
+        #answer-image {
+            display: none;
+        }
+
+        /* تنسيق أزرار الفرق */
+        #team-buttons .button {
+            min-width: 100px;
+        }
+
+        /* زر "لم يجب أحد" */
+        #team-buttons .button.answer-button {
+            background: linear-gradient(135deg, #FDE1E1, #FFB5B5);
+            width: 100%;
+            margin-top: 8px;
+        }
+    
+        @media (max-width: 600px) {
+            .container {
+                width: 90%;
+                padding: 15px;
+            }
+
+            h1 {
+                font-size: 1.2em;
+            }
+
+            .button {
+                font-size: 0.85em;
+                padding: 6px 12px;
+            }
+
+            #question-image img, #answer-image img {
+                max-width: 150px;
+                max-height: 110px;
+            }
+
+            .countdown {
+                font-size: 1em;
+            }
+
+            .answer {
+                font-size: 1.2em;
+                padding: 8px;
+            }
+        }
+
+        @media (max-height: 600px) {
+            .container {
+                max-height: 90vh;
+                overflow-y: auto;
+            }
+
+            #question-image img, #answer-image img {
+                max-height: 100px;
+            }
+        }
+    </style>
+
+</head>
+<body>
+    <div class="container">
+        <h1 id="question-content">جاري تحميل السؤال...</h1>
+        <div id="question-image"></div>
+        <p class="countdown" id="countdown">الوقت المتبقي: ...</p>
+        <div class="answer" id="answer-section">
+            <strong>الإجابة:</strong> <span id="answer-text"></span>
+            <div id="answer-image"></div>
+        </div>
+        <div class="button-container" id="control-buttons">
+            <button class="button" id="next-button" onclick="handleNextCountdown()">تثبيت الإجابة</button>
+            <button class="button answer-button" id="show-answer" onclick="showAnswer()">أظهر الإجابة الصحيحة</button>
+        </div>
+        <div class="button-container" id="team-buttons" style="display: none;"></div>
+    </div>
+
+    <script>
+        const dbName = 'TriviaGame';
+        const dbVersion = 8;
+        let db;
+        let questionId;
+        let questionData;
+        let currentRoundId;
+        let countdownInterval;
+        let currentCountdownIndex = 0;
+        let remainingTeams = [];
+
+        const request = indexedDB.open(dbName, dbVersion);
+
+        request.onsuccess = (event) => {
+            db = event.target.result;
+            console.log('IndexedDB جاهزة.');
+            initializePage();
+        };
+
+        request.onerror = (event) => {
+            console.error('خطأ أثناء فتح قاعدة البيانات:', event);
+        };
+
+        function initializePage() {
+            const params = new URLSearchParams(window.location.search);
+            questionId = parseInt(params.get('questionId'));
+
+            if (!questionId) {
+                document.getElementById('question-content').textContent = 'لم يتم العثور على السؤال.';
+                return;
+            }
+
+            loadRoundAndQuestion();
+        }
+
+        async function loadRoundAndQuestion() {
+            try {
+                // تحميل السؤال أولاً للحصول على معرف الجولة
+                const questionTransaction = db.transaction(['questions'], 'readonly');
+                const questionStore = questionTransaction.objectStore('questions');
+                questionData = await new Promise((resolve, reject) => {
+                    const request = questionStore.get(questionId);
+                    request.onsuccess = () => resolve(request.result);
+                    request.onerror = () => reject(request.error);
+                });
+
+                if (!questionData) {
+                    throw new Error('لم يتم العثور على السؤال');
+                }
+
+                currentRoundId = questionData.roundId;
+
+                // تحميل بيانات الجولة
+                const roundTransaction = db.transaction(['rounds'], 'readonly');
+                const roundStore = roundTransaction.objectStore('rounds');
+                const round = await new Promise((resolve, reject) => {
+                    const request = roundStore.get(currentRoundId);
+                    request.onsuccess = () => resolve(request.result);
+                    request.onerror = () => reject(request.error);
+                });
+
+                if (!round) {
+                    throw new Error('لم يتم العثور على الجولة');
+                }
+
+                remainingTeams = [...round.teams];
+                displayQuestion();
+                startCountdown(getTimeForDifficulty(questionData.difficulty));
+
+            } catch (error) {
+                console.error('خطأ في تحميل البيانات:', error);
+                document.getElementById('question-content').textContent = 'حدث خطأ في تحميل البيانات.';
+            }
+        }
+
+        function displayQuestion() {
+            // عرض السؤال والنص
+            document.getElementById('question-content').textContent = questionData.question;
+            document.getElementById('answer-text').textContent = questionData.answer;
+            
+            // التحقق من وجود صورة السؤال وعرضها
+            const imageContainer = document.getElementById('question-image');
+            if (questionData.imgQ && questionData.imgQ.trim() !== '') {
+                const img = document.createElement('img');
+                img.src = questionData.imgQ;
+                img.alt = 'صورة السؤال';
+                imageContainer.innerHTML = '';
+                imageContainer.appendChild(img);
+                imageContainer.style.display = 'flex';
+            } else {
+                imageContainer.style.display = 'none';
+            }
+
+            // تجهيز صورة الإجابة
+            const answerImageContainer = document.getElementById('answer-image');
+            if (questionData.imgA && questionData.imgA.trim() !== '') {
+                const answerImg = document.createElement('img');
+                answerImg.src = questionData.imgA;
+                answerImg.alt = 'صورة الإجابة';
+                answerImageContainer.innerHTML = '';
+                answerImageContainer.appendChild(answerImg);
+            } else {
+                answerImageContainer.style.display = 'none';
+            }
+        }
+
+        function getTimeForDifficulty(difficulty) {
+            switch (difficulty) {
+                case 'سهل': return 60;
+                case 'متوسط': return 90;
+                case 'صعب': return 120;
+                default: return 60;
+            }
+        }
+
+        function startCountdown(seconds) {
+            const countdownElement = document.getElementById('countdown');
+            const showAnswerButton = document.getElementById('show-answer');
+            showAnswerButton.style.display = 'inline-block';
+            let timeLeft = seconds;
+            countdownElement.textContent = `الوقت المتبقي: ${timeLeft} ثانية`;
+
+            clearInterval(countdownInterval);
+            countdownInterval = setInterval(() => {
+                timeLeft--;
+                countdownElement.textContent = `الوقت المتبقي: ${timeLeft} ثانية`;
+
+                if (timeLeft <= 0) {
+                    clearInterval(countdownInterval);
+                    handleNextCountdown();
+                }
+            }, 1000);
+        }
+
+        function handleNextCountdown() {
+            const showAnswerButton = document.getElementById('show-answer');
+            if (currentCountdownIndex < remainingTeams.length - 1) {
+                currentCountdownIndex++;
+                startCountdown(getTimeForDifficulty(questionData.difficulty));
+            } else {
+                showAnswer();
+                showAnswerButton.style.display = 'none';
+            }
+        }
+
+        function showAnswer() {
+            document.getElementById('answer-section').style.display = 'block';
+            document.getElementById('question-image').style.display = 'none';
+            
+            if (questionData.imgA && questionData.imgA.trim() !== '') {
+                document.getElementById('answer-image').style.display = 'flex';
+            }
+            
+            document.getElementById('control-buttons').style.display = 'none';
+            document.getElementById('countdown').style.display = 'none';
+            
+            displayTeamButtons();
+        }
+
+        function displayTeamButtons() {
+            const teamButtonsContainer = document.getElementById('team-buttons');
+            teamButtonsContainer.style.display = 'flex';
+            teamButtonsContainer.innerHTML = '';
+
+            remainingTeams.forEach((team) => {
+                const button = document.createElement('button');
+                button.className = 'button';
+                button.textContent = team.name;
+                button.onclick = () => assignPointsToTeam(team.name);
+                teamButtonsContainer.appendChild(button);
+            });
+
+            const noAnswerButton = document.createElement('button');
+            noAnswerButton.className = 'button answer-button';
+            noAnswerButton.textContent = 'لم يجب أحد';
+            noAnswerButton.onclick = assignNoAnswer;
+            teamButtonsContainer.appendChild(noAnswerButton);
+        }
+
+        async function assignPointsToTeam(teamName) {
+            try {
+                const points = calculatePoints(questionData.difficulty);
+                const transaction = db.transaction(['rounds', 'questions'], 'readwrite');
+                
+                // تحديث نقاط الفريق
+                const roundStore = transaction.objectStore('rounds');
+                const round = await new Promise((resolve, reject) => {
+                    const request = roundStore.get(currentRoundId);
+                    request.onsuccess = () => resolve(request.result);
+                    request.onerror = () => reject(request.error);
+                });
+
+                const team = round.teams.find(t => t.name === teamName);
+                if (team) {
+                    team.points += points;
+                    await new Promise((resolve, reject) => {
+                        const request = roundStore.put(round);
+                        request.onsuccess = () => resolve();
+                        request.onerror = () => reject(request.error);
+                    });
+                }
+
+                // تحديث السؤال
+                await updateQuestionState(teamName);
+
+                // العودة إلى صفحة الأسئلة
+                redirectToQuestionsPage();
+
+            } catch (error) {
+                console.error('خطأ في تحديث النقاط:', error);
+                alert('حدث خطأ في تحديث النقاط');
+            }
+        }
+
+        async function updateQuestionState(teamName) {
+            const transaction = db.transaction(['questions'], 'readwrite');
+            const questionStore = transaction.objectStore('questions');
+            
+            questionData.awardedTeam = teamName;
+            questionData.isDisabled = 2; // تعطيل السؤال للمرة الثانية
+            
+            await new Promise((resolve, reject) => {
+                const request = questionStore.put(questionData);
+                request.onsuccess = () => resolve();
+                request.onerror = () => reject(request.error);
+            });
+        }
+
+        function assignNoAnswer() {
+            updateQuestionState(null).then(() => {
+                redirectToQuestionsPage();
+            }).catch(error => {
+                console.error('خطأ في تحديث حالة السؤال:', error);
+                alert('حدث خطأ في تحديث حالة السؤال');
+            });
+        }
+
+        function calculatePoints(difficulty) {
+            switch (difficulty) {
+                case 'سهل': return 50;
+                case 'متوسط': return 100;
+                case 'صعب': return 150;
+                default: return 0;
+            }
+        }
+
+        function redirectToQuestionsPage() {
+            window.location.href = `questionsReplay.html?roundId=${currentRoundId}`;
+        }
+    </script>
+</body>
+</html>

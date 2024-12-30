@@ -1,0 +1,224 @@
+<!DOCTYPE html>
+<html lang="ar">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>عرض الجواب</title>
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            font-family: 'Tajawal', sans-serif;
+            background: #D9EAFD;
+            color: #9AA6B2;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            text-align: center;
+            background-image: linear-gradient(45deg, #D9EAFD 25%, #e4f0fd 25%, #e4f0fd 50%, #D9EAFD 50%, #D9EAFD 75%, #e4f0fd 75%, #e4f0fd 100%);
+            background-size: 56.57px 56.57px;
+        }
+
+        .answer-container {
+            background: #F8FAFC;
+            padding: 20px;
+            border-radius: 12px;
+            box-shadow: 0 4px 20px rgba(188, 204, 220, 0.3);
+            max-width: 500px;
+            width: 90%;
+            border: 1px solid #BCCCDC;
+        }
+
+        .question {
+            font-size: 1.4em;
+            color: #9AA6B2;
+            margin-bottom: 15px;
+            padding: 10px;
+        }
+
+        .answer {
+            font-size: 1.3em;
+            color: #8FD14F;
+            margin-bottom: 15px;
+            padding: 10px;
+            font-weight: bold;
+        }
+
+        .team {
+            font-size: 1em;
+            color: #9AA6B2;
+            margin-bottom: 15px;
+            padding: 8px;
+        }
+
+        .team span {
+            font-weight: bold;
+            color: #D9EAFD;
+            background: #9AA6B2;
+            padding: 2px 8px;
+            border-radius: 4px;
+        }
+
+        .back-button {
+            margin-top: 15px;
+            padding: 8px 16px;
+            background: linear-gradient(135deg, #D9EAFD, #BCCCDC);
+            color: #F8FAFC;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 0.9em;
+            font-weight: bold;
+            transition: all 0.3s ease;
+        }
+
+        .back-button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(188, 204, 220, 0.4);
+        }
+
+        @media (max-width: 600px) {
+            .answer-container {
+                width: 85%;
+                padding: 15px;
+            }
+
+            .question {
+                font-size: 1.2em;
+            }
+
+            .answer {
+                font-size: 1.1em;
+            }
+
+            .team {
+                font-size: 0.9em;
+            }
+
+            .back-button {
+                padding: 6px 12px;
+                font-size: 0.85em;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="answer-container">
+        <div id="question-text" class="question">...</div>
+        <div id="answer-text" class="answer">...</div>
+        <div id="team-info" class="team">...</div>
+        <button class="back-button" onclick="goBackToQuestions()">العودة للأسئلة</button>
+    </div>
+<script>
+    const dbName = 'TriviaGame';
+    let db;
+    let currentRoundId;
+
+    const request = indexedDB.open(dbName, 8);
+
+    request.onsuccess = (event) => {
+        db = event.target.result;
+        const params = new URLSearchParams(window.location.search);
+        const questionId = parseInt(params.get('questionId'));
+        if (questionId) {
+            console.log('تم استلام معرف السؤال:', questionId);
+            loadAnswer(questionId);
+        } else {
+            showError('لم يتم تحديد معرف السؤال');
+        }
+    };
+
+    request.onerror = (event) => {
+        console.error('خطأ في فتح قاعدة البيانات:', event);
+        showError('حدث خطأ في الاتصال بقاعدة البيانات');
+    };
+
+    async function loadAnswer(questionId) {
+        try {
+            const transaction = db.transaction(['questions'], 'readonly');
+            const questionsStore = transaction.objectStore('questions');
+            
+            const question = await new Promise((resolve, reject) => {
+                const request = questionsStore.get(questionId);
+                request.onsuccess = () => resolve(request.result);
+                request.onerror = () => reject(request.error);
+            });
+
+            if (question) {
+                console.log('تم تحميل بيانات السؤال:', question);
+                currentRoundId = question.roundId; // حفظ معرف الجولة
+                
+                const questionText = question.question || 'النص غير متوفر';
+                const answerText = question.answer || 'الإجابة غير متوفرة';
+                const awardedTeam = question.awardedTeam || 'غير معروف';
+
+                document.getElementById('question-text').textContent = `السؤال: ${questionText}`;
+                document.getElementById('answer-text').textContent = `الإجابة: ${answerText}`;
+                document.getElementById('team-info').innerHTML = 
+                    `الفريق الذي أجاب: <span>${awardedTeam}</span>`;
+
+                // عرض الصورة إذا كانت موجودة
+                if (question.imgQ || question.imgA) {
+                    displayImages(question.imgQ, question.imgA);
+                }
+            } else {
+                showError('لم يتم العثور على السؤال');
+            }
+        } catch (error) {
+            console.error('خطأ في تحميل بيانات السؤال:', error);
+            showError('حدث خطأ في تحميل بيانات السؤال');
+        }
+    }
+
+    // إضافة دعم عرض الصور
+    function displayImages(questionImage, answerImage) {
+        if (questionImage) {
+            const imgContainer = document.createElement('div');
+            imgContainer.className = 'image-container';
+            imgContainer.innerHTML = `
+                <img src="${questionImage}" alt="صورة السؤال" 
+                     style="max-width: 100%; height: auto; margin: 10px 0;">
+            `;
+            document.getElementById('question-text').appendChild(imgContainer);
+        }
+
+        if (answerImage) {
+            const imgContainer = document.createElement('div');
+            imgContainer.className = 'image-container';
+            imgContainer.innerHTML = `
+                <img src="${answerImage}" alt="صورة الإجابة" 
+                     style="max-width: 100%; height: auto; margin: 10px 0;">
+            `;
+            document.getElementById('answer-text').appendChild(imgContainer);
+        }
+    }
+
+    function showError(message) {
+        const container = document.querySelector('.answer-container');
+        container.innerHTML = `
+            <div style="
+                color: #FFB5B5;
+                background: #FFF0F0;
+                padding: 15px;
+                border-radius: 8px;
+                margin: 20px 0;
+            ">
+                ${message}
+            </div>
+            <button class="back-button" onclick="goBackToQuestions()">العودة للأسئلة</button>
+        `;
+    }
+
+    function goBackToQuestions() {
+        if (currentRoundId) {
+            window.location.href = `questionsReplay.html?roundId=${currentRoundId}`;
+        } else {
+            console.error('معرف الجولة غير متوفر');
+            window.location.href = 'questionsReplay.html';
+        }
+    }
+</script>
+</body>
+</html>

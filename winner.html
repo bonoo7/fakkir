@@ -1,0 +1,261 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>الفائز - لعبة فكر فكر</title>
+    <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="css/questions.css">
+    <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
+    
+    <!-- إضافات PWA -->
+    <link rel="manifest" href="/manifest.json">
+    <meta name="theme-color" content="#4A6FA5">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black">
+    <meta name="apple-mobile-web-app-title" content="لعبة فكر فكر">
+    <link rel="apple-touch-icon" href="/icons/icon-152x152.png">
+    <link rel="apple-touch-icon" sizes="72x72" href="/icons/icon-72x72.png">
+    <link rel="apple-touch-icon" sizes="96x96" href="/icons/icon-96x96.png">
+    <link rel="apple-touch-icon" sizes="128x128" href="/icons/icon-128x128.png">
+    <link rel="apple-touch-icon" sizes="144x144" href="/icons/icon-144x144.png">
+    <link rel="apple-touch-icon" sizes="152x152" href="/icons/icon-152x152.png">
+    <link rel="apple-touch-icon" sizes="192x192" href="/icons/icon-192x192.png">
+    <link rel="apple-touch-icon" sizes="384x384" href="/icons/icon-384x384.png">
+    <link rel="apple-touch-icon" sizes="512x512" href="/icons/icon-512x512.png">
+    <meta name="mobile-web-app-capable" content="yes">
+    
+    <style>
+        body {
+            overflow: hidden;
+            height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+        }
+
+        .winner-container {
+            background: var(--glass-bg);
+            border-radius: 15px;
+            padding: 30px;
+            box-shadow: 0 8px 32px var(--shadow-primary);
+            border: 1px solid var(--border-color);
+            text-align: center;
+            max-width: 90%;
+            height: 90vh;
+            width: 90%;
+            margin: 0 auto;
+            position: relative;
+            z-index: 2;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+        }
+
+        #winner-name {
+            color: var(--primary-color);
+            font-size: 2em;
+            margin-bottom: 10px;
+            font-weight: 800;
+        }
+
+        #winner-score {
+            color: var(--text-color);
+            font-size: 1.5em;
+            margin-bottom: 15px;
+            font-weight: 600;
+        }
+
+        .team-scores {
+            margin: 10px 0;
+            padding: 15px;
+            background: rgba(255, 255, 255, 0.5);
+            border-radius: 10px;
+            flex: 1;
+            overflow-y: auto;
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+
+        .team-item {
+            padding: 10px;
+            background: var(--card-bg);
+            border-radius: 8px;
+            box-shadow: 0 2px 8px var(--shadow-secondary);
+            font-size: 1.2em;
+            color: var(--text-color);
+            flex-shrink: 0;
+        }
+
+        .play-again-button {
+            background: var(--primary-color);
+            color: white;
+            border: none;
+            padding: 12px 30px;
+            border-radius: 8px;
+            font-size: 1.2em;
+            cursor: pointer;
+            transition: background 0.3s ease;
+            font-weight: 600;
+            margin-top: 15px;
+        }
+
+        .play-again-button:hover {
+            background: var(--primary-light);
+        }
+
+        @media (max-height: 600px) {
+            .winner-container {
+                padding: 15px;
+            }
+
+            #winner-name {
+                font-size: 1.5em;
+                margin-bottom: 5px;
+            }
+
+            #winner-score {
+                font-size: 1.2em;
+                margin-bottom: 10px;
+            }
+
+            .team-scores {
+                padding: 10px;
+                gap: 5px;
+            }
+
+            .team-item {
+                padding: 8px;
+                font-size: 1em;
+            }
+
+            .play-again-button {
+                padding: 8px 20px;
+                font-size: 1em;
+                margin-top: 10px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="winner-container">
+        <h1 id="winner-name">جاري تحميل الفائز...</h1>
+        <div id="winner-score"></div>
+        <div id="team-scores" class="team-scores">
+            <!-- سيتم إضافة نتائج الفرق هنا -->
+        </div>
+        <button onclick="playAgain()" class="play-again-button">العب مرة أخرى</button>
+    </div>
+
+    <script>
+        const dbName = 'TriviaGame';
+        const dbVersion = 10;
+        let db;
+
+        const request = indexedDB.open(dbName, dbVersion);
+
+        request.onupgradeneeded = (event) => {
+            db = event.target.result;
+            if (!db.objectStoreNames.contains('rounds')) {
+                db.createObjectStore('rounds', { keyPath: 'id', autoIncrement: true });
+            }
+        };
+
+        request.onsuccess = (event) => {
+            db = event.target.result;
+            loadWinnerData();
+            
+            // تشغيل تأثير الاحتفال
+            confetti({
+                particleCount: 100,
+                spread: 70,
+                origin: { y: 0.6 }
+            });
+        };
+
+        request.onerror = (event) => {
+            console.error('خطأ في فتح قاعدة البيانات:', event);
+        };
+
+        function loadWinnerData() {
+            const transaction = db.transaction(['rounds'], 'readonly');
+            const store = transaction.objectStore('rounds');
+            const request = store.getAll();
+
+            request.onsuccess = () => {
+                const rounds = request.result;
+                if (rounds.length > 0) {
+                    const lastRound = rounds[rounds.length - 1];
+                    const teams = lastRound.teams;
+
+                    if (teams && teams.length > 0) {
+                        const winner = teams.reduce((max, team) => 
+                            (team.points > max.points ? team : max), teams[0]);
+
+                        document.getElementById('winner-name').textContent = `الفائز: ${winner.name}`;
+                        document.getElementById('winner-score').textContent = `عدد النقاط: ${winner.points}`;
+
+                        const sortedTeams = teams.sort((a, b) => b.points - a.points);
+                        const teamScoresContainer = document.getElementById('team-scores');
+                        teamScoresContainer.innerHTML = '';
+
+                        sortedTeams.forEach(team => {
+                            const teamItem = document.createElement('div');
+                            teamItem.className = 'team-item';
+                            teamItem.textContent = `${team.name}: ${team.points} نقطة`;
+                            teamScoresContainer.appendChild(teamItem);
+                        });
+                    } else {
+                        displayNoTeamsMessage();
+                    }
+                } else {
+                    displayNoTeamsMessage();
+                }
+            };
+        }
+
+        function displayNoTeamsMessage() {
+            document.getElementById('winner-name').textContent = 'لم يتم العثور على جولة';
+            document.getElementById('winner-score').textContent = '';
+            document.getElementById('team-scores').innerHTML = 
+                '<div class="team-item">لا توجد فرق مسجلة</div>';
+        }
+
+        function playAgain() {
+            window.location.href = 'index.html';
+        }
+    </script>
+
+    <!-- تسجيل Service Worker -->
+    <script>
+        if ('serviceWorker' in navigator) {
+            window.addEventListener('load', () => {
+                navigator.serviceWorker.register('/service-worker.js')
+                    .then(registration => {
+                        console.log('تم تسجيل Service Worker بنجاح:', registration.scope);
+                    })
+                    .catch(error => {
+                        console.log('فشل تسجيل Service Worker:', error);
+                    });
+            });
+        }
+
+        let deferredPrompt;
+        window.addEventListener('beforeinstallprompt', (e) => {
+            e.preventDefault();
+            deferredPrompt = e;
+        });
+
+        window.addEventListener('appinstalled', () => {
+            console.log('تم تثبيت التطبيق بنجاح');
+            confetti({
+                particleCount: 100,
+                spread: 70,
+                origin: { y: 0.6 }
+            });
+        });
+    </script>
+</body>
+</html>

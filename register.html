@@ -1,0 +1,65 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>إنشاء حساب - لعبة فكّر</title>
+    <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="css/styles.css">
+    <link rel="stylesheet" href="css/auth.css">
+</head>
+<body>
+    <div class="auth-container">
+        <h1>إنشاء حساب جديد</h1>
+        
+        <form id="register-form" class="auth-form">
+            <div class="form-group">
+                <label for="name">الاسم</label>
+                <input type="text" id="name" required>
+            </div>
+
+            <div class="form-group">
+                <label for="email">البريد الإلكتروني</label>
+                <input type="email" id="email" required>
+            </div>
+            
+            <div class="form-group">
+                <label for="password">كلمة المرور</label>
+                <input type="password" id="password" required>
+            </div>
+
+            <div class="form-group">
+                <label for="confirm-password">تأكيد كلمة المرور</label>
+                <input type="password" id="confirm-password" required>
+            </div>
+
+            <button type="submit" class="auth-submit">إنشاء حساب</button>
+        </form>
+
+        <div class="divider">
+            <span>أو</span>
+        </div>
+
+        <div class="social-auth">
+            <button type="button" class="google-auth" onclick="Auth.signInWithGoogle()">
+                <img src="images/google.svg" alt="Google">
+                <span>التسجيل عبر Google</span>
+            </button>
+            
+            <button type="button" class="apple-auth" onclick="Auth.signInWithApple()">
+                <img src="images/apple.svg" alt="Apple">
+                <span>التسجيل عبر Apple</span>
+            </button>
+        </div>
+
+        <p class="auth-footer">
+            لديك حساب بالفعل؟ <a href="login.html">تسجيل الدخول</a>
+        </p>
+    </div>
+
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-auth-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-analytics-compat.js"></script>
+    <script src="js/auth.js"></script>
+</body>
+</html> 
