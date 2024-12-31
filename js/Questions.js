@@ -68,7 +68,7 @@ const initializeDB = () => {
 const getCurrentRoundId = () => {
     return new Promise((resolve, reject) => {
         if (!db) {
-            reject('قاعدة البيانات غ��ر متصلة');
+            reject('قاعدة البيانات غير متصلة');
             return;
         }
 
@@ -226,13 +226,10 @@ const createCategoryElements = (category) => {
     categoryCenter.appendChild(imageContainer);
     categoryCenter.appendChild(categoryName);
 
-    const buttonsLeft = document.createElement('div');
-    buttonsLeft.className = 'buttons-left';
-    
-    const buttonsRight = document.createElement('div');
-    buttonsRight.className = 'buttons-right';
+    const buttonsContainer = document.createElement('div');
+    buttonsContainer.className = 'buttons-container';
 
-    return { categoryContainer, buttonsLeft, categoryCenter, buttonsRight };
+    return { categoryContainer, categoryCenter, buttonsContainer };
 };
 
 // إضافة دالة جديدة للتحقق من حالة جميع الأسئلة
@@ -251,20 +248,46 @@ const renderCategories = () => {
         const categoryQuestions = questions.filter(q => q.category === category.name);
         if (!categoryQuestions || categoryQuestions.length === 0) return;
 
-        const { categoryContainer, buttonsLeft, categoryCenter, buttonsRight } = createCategoryElements(category);
+        const { categoryContainer, categoryCenter, buttonsContainer } = createCategoryElements(category);
 
-        const difficulties = ['سهل', 'متوسط', 'صعب'];
+        // ترتيب الأسئلة حسب الصعوبة
+        const sortedQuestions = categoryQuestions.sort((a, b) => {
+            const difficultyOrder = { 'سهل': 1, 'متوسط': 2, 'صعب': 3 };
+            return difficultyOrder[a.difficulty] - difficultyOrder[b.difficulty];
+        });
         
-        createButtonsGroup(categoryQuestions, difficulties, null, buttonsLeft);
-        createButtonsGroup(categoryQuestions, difficulties, 4, buttonsRight);
+        // إنشاء الأزرار بالترتيب الجديد
+        sortedQuestions.forEach((question) => {
+            const button = document.createElement('button');
+            button.className = `question-button ${question.difficulty}`;
+            
+            let points;
+            switch(question.difficulty) {
+                case 'سهل': points = '50'; break;
+                case 'متوسط': points = '100'; break;
+                case 'صعب': points = '150'; break;
+                default: points = '0';
+            }
+            
+            button.textContent = points;
 
-        categoryContainer.appendChild(buttonsLeft);
+            if (question.isDisabled) {
+                button.classList.add('disabled');
+                button.addEventListener('click', () => {
+                    window.location.href = `show-answer.html?questionId=${question.id}`;
+                });
+            } else {
+                button.addEventListener('click', () => handleQuestionClick(question));
+            }
+
+            buttonsContainer.appendChild(button);
+        });
+
         categoryContainer.appendChild(categoryCenter);
-        categoryContainer.appendChild(buttonsRight);
+        categoryContainer.appendChild(buttonsContainer);
         categoriesContainer.appendChild(categoryContainer);
     });
 
-    // التحقق من حالة جميع الأسئلة بعد الرسم
     if (checkAllQuestionsDisabled()) {
         window.location.href = 'winner.html';
     }
