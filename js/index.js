@@ -57,3 +57,30 @@ document.addEventListener('DOMContentLoaded', function() {
         console.error('لم يتم تحميل الأسئلة بشكل صحيح');
     }
 });
+
+let deferredPrompt;
+
+window.addEventListener('beforeinstallprompt', (e) => {
+    // منع ظهور النافذة تلقائياً
+    e.preventDefault();
+    // حفظ الحدث للاستخدام لاحقاً
+    deferredPrompt = e;
+    
+    // إظهار زر التثبيت (إذا كان لديك زر مخصص)
+    const installButton = document.getElementById('installButton');
+    if (installButton) {
+        installButton.style.display = 'block';
+        installButton.addEventListener('click', async () => {
+            if (deferredPrompt) {
+                // إظهار نافذة التثبيت
+                deferredPrompt.prompt();
+                // انتظار اختيار المستخدم
+                const { outcome } = await deferredPrompt.userChoice;
+                // تصفير المتغير
+                deferredPrompt = null;
+                // إخفاء الزر
+                installButton.style.display = 'none';
+            }
+        });
+    }
+});
