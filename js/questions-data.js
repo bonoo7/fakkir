@@ -1,5 +1,4 @@
-const defaultQuestions = [
-        {
+const defaultQuestions = [         {
             "question": "في أي رياضة يُستخدم المضرب والكرة الصغيرة؟",
             "answer": "تنس الطاولة",
             "category": "رياضة",

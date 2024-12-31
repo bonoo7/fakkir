@@ -7,7 +7,8 @@
     
     <!-- تصحيح مسارات CSS و JavaScript -->
     <link rel="stylesheet" href="https://bonoo7.github.io/fakkir/css/styles.css">
-    <script src="https://bonoo7.github.io/fakkir/js/index.js" defer></script>
+    <script src="./js/questions-data.js" defer></script>
+    <script src="./js/index.js" defer></script>
     
     <!-- إضافات PWA -->
     <link rel="manifest" href="https://bonoo7.github.io/fakkir/manifest.json">
@@ -50,11 +51,9 @@
         
         <div id="team-names"></div>
         
-        <button class="start-button" onclick="startGame()">ابدأ اللعب</button>
+        <button id="startButton" class="start-button">ابدأ اللعب</button>
     </div>
 
-    <script src="js/index.js"></script>
-    
     <!-- تسجيل Service Worker -->
     <script>
         if ('serviceWorker' in navigator) {
